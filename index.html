@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FinApp — Controle de gastos pessoais</title>
+<title>FinanPro — Controle de Gastos</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -79,6 +79,23 @@
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
+
+  /* Date input melhorado */
+  input[type=date] {
+    position: relative;
+    cursor: pointer;
+  }
+  input[type=date]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px;
+    opacity: 0.7;
+    transition: opacity 150ms;
+  }
+  input[type=date]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+  }
 
   /* Inputs base */
   .field {
@@ -196,7 +213,7 @@
 </style>
 <div id="invise-gate">
   <div class="ig-card">
-    <h1>Fin<b>App</b></h1>
+    <h1>Finan<b>Pro</b></h1>
     <p>Digite sua chave única para entrar. Você recebe a chave após a compra na <a href="https://invisestore.com" style="color:#6c63ff;">InviseStore</a>.</p>
     <form id="ig-form" autocomplete="off">
       <input id="ig-key" placeholder="INVS-XXXX-XXXX-XXXX" required maxlength="24" />
@@ -298,18 +315,18 @@
 <!-- Topbar mobile -->
 <header id="topbar" class="md:hidden sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-bg/90 backdrop-blur px-4">
   <button id="btn-menu" class="btn btn-ghost btn-icon" aria-label="Menu">☰</button>
-  <span class="font-semibold">Fin<span class="text-primary">App</span></span>
+  <span class="font-semibold">Finan<span class="text-primary">Pro</span></span>
   <button id="btn-theme-mobile" class="btn btn-ghost btn-icon" aria-label="Tema">🌓</button>
 </header>
 
 <!-- Sidebar desktop -->
 <aside id="sidebar" class="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:w-64 md:flex-col bg-card border-r border-border z-20">
   <div class="flex h-14 items-center justify-between border-b border-border px-6">
-    <span class="text-lg font-semibold">Fin<span class="text-primary">App</span></span>
+    <span class="text-lg font-semibold">Finan<span class="text-primary">Pro</span></span>
     <button id="btn-theme" class="btn btn-ghost btn-icon" aria-label="Alternar tema">🌓</button>
   </div>
   <nav id="nav" class="flex-1 overflow-y-auto p-4 space-y-1"></nav>
-  <p class="border-t border-border p-4 text-xs text-muted">v1.0 · feito com ♥</p>
+  <p class="border-t border-border p-4 text-xs text-muted">v2.0 · Feito por InviseStore</p>
 </aside>
 
 <!-- Drawer mobile (overlay) -->
@@ -317,7 +334,7 @@
   <div class="absolute inset-0 bg-black/60 animate-fade-in" data-close-drawer></div>
   <aside class="absolute left-0 top-0 h-full w-72 bg-card p-4 shadow-xl animate-slide-up">
     <div class="mb-6 flex items-center justify-between">
-      <span class="text-lg font-semibold">Fin<span class="text-primary">App</span></span>
+      <span class="text-lg font-semibold">Finan<span class="text-primary">Pro</span></span>
       <button class="btn btn-ghost btn-icon" data-close-drawer>✕</button>
     </div>
     <nav id="nav-mobile" class="space-y-1"></nav>
@@ -755,14 +772,18 @@ const Charts = (() => {
       return `${d}/${m}`;
     });
 
+    const successColor = getCssVar('--success');
+    const dangerColor = getCssVar('--danger');
+    const primaryColor = getCssVar('--primary');
+
     instances.set(canvasId, new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'Receitas',         data: series.map(p => p.income),  borderColor: getCssVar('--success'), backgroundColor: 'transparent', tension: 0.3, borderWidth: 2, pointRadius: 0 },
-          { label: 'Gastos',           data: series.map(p => p.expense), borderColor: getCssVar('--danger'),  backgroundColor: 'transparent', tension: 0.3, borderWidth: 2, pointRadius: 0 },
-          { label: 'Saldo acumulado',  data: series.map(p => p.balance), borderColor: getCssVar('--primary'), backgroundColor: 'transparent', tension: 0.3, borderWidth: 2, borderDash: [4, 4], pointRadius: 0 },
+          { label: 'Receitas', data: series.map(p => p.income), backgroundColor: successColor + '99', borderColor: successColor, borderWidth: 1, borderRadius: 4, order: 2 },
+          { label: 'Gastos', data: series.map(p => p.expense), backgroundColor: dangerColor + '99', borderColor: dangerColor, borderWidth: 1, borderRadius: 4, order: 2 },
+          { label: 'Saldo acumulado', data: series.map(p => p.balance), type: 'line', borderColor: primaryColor, backgroundColor: 'transparent', tension: 0.3, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: primaryColor, order: 1 },
         ],
       },
       options: {
@@ -770,7 +791,7 @@ const Charts = (() => {
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: { position: 'top', labels: { color: fg, boxWidth: 14, font: { size: 11 } } },
+          legend: { position: 'top', labels: { color: fg, boxWidth: 14, font: { size: 11 }, usePointStyle: true, pointStyle: 'rectRounded' } },
           tooltip: {
             callbacks: {
               label: (ctx) => `${ctx.dataset.label}: ${Utils.formatCurrency(ctx.parsed.y)}`,
@@ -778,10 +799,10 @@ const Charts = (() => {
           },
         },
         scales: {
-          x: { ticks: { color: muted, font: { size: 10 } }, grid: { color: border, display: false } },
+          x: { ticks: { color: muted, font: { size: 10 }, maxRotation: 0 }, grid: { display: false } },
           y: {
-            ticks: { color: muted, font: { size: 10 }, callback: v => 'R$' + (v / 1000).toFixed(0) + 'k' },
-            grid: { color: border },
+            ticks: { color: muted, font: { size: 10 }, callback: v => Utils.formatCurrency(v) },
+            grid: { color: border + '60' },
           },
         },
       },
@@ -959,7 +980,7 @@ const ImportExport = (() => {
   function exportBackupJSON() {
     const data = State.get();
     const blob = JSON.stringify(data, null, 2);
-    download(blob, `finapp-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+    download(blob, `finanpro-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
   }
 
   function download(content, filename, mime) {
@@ -1085,6 +1106,8 @@ const Analytics = (() => {
    ============================================================ */
 const NAV_ITEMS = [
   { hash: '#/dashboard',    label: 'Dashboard',         icon: '📊' },
+  { hash: '#/simulator',    label: 'Simulador',         icon: '💹' },
+  { hash: '#/charts',       label: 'Gráficos',          icon: '📉' },
   { hash: '#/transactions', label: 'Transações',        icon: '📋' },
   { hash: '#/categories',   label: 'Categorias',        icon: '🏷️' },
   { hash: '#/accounts',     label: 'Contas',            icon: '👛' },
@@ -1122,6 +1145,7 @@ function renderDashboard() {
   const monthTxs = Analytics.inRange(txs, range.start, range.end);
   const summary = Analytics.summary(monthTxs);
   const expenses = Analytics.byCategory(monthTxs, 'EXPENSE');
+  const incomes = Analytics.byCategory(monthTxs, 'INCOME');
   const series = Analytics.timeSeries(monthTxs);
   const averages = Analytics.monthlyAverages(txs, 6);
 
@@ -1155,12 +1179,19 @@ function renderDashboard() {
         ${kpiCard('📊', `Média ${averages.monthsConsidered}m`, averages.avgBalance, 'primary', 'saldo médio mensal')}
       </div>
 
-      <!-- Gráficos -->
-      <div class="grid gap-6 lg:grid-cols-3">
-        <div class="card lg:col-span-2 p-6">
-          <h3 class="font-semibold mb-1">Evolução no período</h3>
-          <p class="text-sm text-muted mb-4">Receitas, gastos e saldo acumulado</p>
-          <div style="position:relative; height:300px;"><canvas id="chart-line"></canvas></div>
+      <!-- Gráfico de evolução -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-1">Evolução no período</h3>
+        <p class="text-sm text-muted mb-4">Receitas, gastos e saldo acumulado dia a dia</p>
+        <div style="position:relative; height:300px;"><canvas id="chart-line"></canvas></div>
+      </div>
+
+      <!-- Pizzas lado a lado -->
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card p-6">
+          <h3 class="font-semibold mb-1">Receitas por categoria</h3>
+          <p class="text-sm text-muted mb-4">Distribuição percentual</p>
+          <div style="position:relative; height:300px;"><canvas id="chart-pie-inc"></canvas></div>
         </div>
         <div class="card p-6">
           <h3 class="font-semibold mb-1">Gastos por categoria</h3>
@@ -1205,6 +1236,7 @@ function renderDashboard() {
 
   // Charts
   Charts.line('chart-line', series);
+  Charts.pie('chart-pie-inc', incomes);
   Charts.pie('chart-pie', expenses);
 }
 
@@ -1705,6 +1737,442 @@ function categoryListPreview(items) {
   `;
 }
 
+/* ---------- SIMULATOR ---------- */
+function renderSimulator() {
+  const root = document.getElementById('page-root');
+  root.innerHTML = `
+    <div class="space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Simulador de Investimentos</h1>
+        <p class="text-sm text-muted">Simule rendimentos em CDB 100% do CDI com juros compostos, IR e comparação com poupança</p>
+      </div>
+
+      <div class="card p-6">
+        <form id="sim-form" class="space-y-4">
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label class="text-sm font-medium">Valor inicial (R$)</label>
+              <input id="sim-initial" type="number" step="0.01" min="0" class="field" value="1000" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Aporte mensal (R$)</label>
+              <input id="sim-monthly" type="number" step="0.01" min="0" class="field" value="500" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Período (meses)</label>
+              <input id="sim-months" type="number" min="1" max="600" class="field" value="12" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Taxa CDI anual (%)</label>
+              <input id="sim-cdi" type="number" step="0.01" min="0" class="field" value="14.15" />
+            </div>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-muted">
+            <span>Alíquota de IR aplicada automaticamente conforme prazo</span>
+          </div>
+          <button type="submit" class="btn btn-primary">Simular investimento</button>
+        </form>
+      </div>
+
+      <div id="sim-results" style="display:none;" class="space-y-6">
+
+        <!-- Resultado principal -->
+        <div class="card p-6">
+          <div class="grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 class="font-semibold mb-4">Resultado da simulação</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Total investido</span>
+                  <span id="sim-invested" class="font-semibold tabular"></span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Rendimento bruto</span>
+                  <span id="sim-gross-interest" class="font-semibold tabular" style="color:var(--success);"></span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">IR (<span id="sim-ir-rate"></span>)</span>
+                  <span id="sim-ir-value" class="font-semibold tabular" style="color:var(--danger);">- </span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Rendimento líquido</span>
+                  <span id="sim-net-interest" class="font-semibold tabular" style="color:var(--success);"></span>
+                </div>
+                <div class="flex justify-between items-center py-3 bg-accent/50 rounded-lg px-3 -mx-3">
+                  <span class="text-sm font-semibold">Valor final líquido</span>
+                  <span id="sim-net-total" class="text-xl font-bold tabular" style="color:var(--success);"></span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="font-semibold mb-4">Comparativo</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">CDB 100% CDI (líquido)</span>
+                  <span id="sim-cdb-final" class="font-semibold tabular" style="color:var(--success);"></span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Poupança (isenta de IR)</span>
+                  <span id="sim-poup-final" class="font-semibold tabular"></span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Rentabilidade líquida CDI</span>
+                  <span id="sim-rent-cdi" class="font-semibold tabular" style="color:var(--primary);"></span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-border">
+                  <span class="text-sm text-muted">Rentabilidade poupança</span>
+                  <span id="sim-rent-poup" class="font-semibold tabular"></span>
+                </div>
+                <div class="flex justify-between items-center py-3 bg-accent/50 rounded-lg px-3 -mx-3">
+                  <span class="text-sm font-semibold">Vantagem do CDI sobre poupança</span>
+                  <span id="sim-advantage" class="text-lg font-bold tabular" style="color:var(--primary);"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Faixa IR -->
+        <div class="card p-4">
+          <div class="flex flex-wrap gap-3 justify-center text-xs">
+            <span class="badge" id="sim-ir-badge-1">Até 180 dias: 22,5%</span>
+            <span class="badge" id="sim-ir-badge-2">181–360 dias: 20%</span>
+            <span class="badge" id="sim-ir-badge-3">361–720 dias: 17,5%</span>
+            <span class="badge" id="sim-ir-badge-4">Acima de 720 dias: 15%</span>
+          </div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="card p-6">
+          <h3 class="font-semibold mb-1">Evolução do patrimônio</h3>
+          <p class="text-sm text-muted mb-4">Total investido vs. valor bruto vs. valor líquido (após IR)</p>
+          <div style="position:relative; height:300px;"><canvas id="sim-chart"></canvas></div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="card overflow-hidden">
+          <div class="p-4 border-b border-border">
+            <h3 class="font-semibold">Tabela mês a mês</h3>
+          </div>
+          <div class="overflow-x-auto" style="max-height:400px; overflow-y:auto;">
+            <table class="table">
+              <thead style="position:sticky; top:0; z-index:1;">
+                <tr>
+                  <th>Mês</th>
+                  <th class="text-right">Aporte</th>
+                  <th class="text-right">Juros do mês</th>
+                  <th class="text-right">Total investido</th>
+                  <th class="text-right">Bruto acumulado</th>
+                  <th class="text-right">IR</th>
+                  <th class="text-right">Líquido</th>
+                </tr>
+              </thead>
+              <tbody id="sim-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  function getIRRate(days) {
+    if (days <= 180) return 0.225;
+    if (days <= 360) return 0.20;
+    if (days <= 720) return 0.175;
+    return 0.15;
+  }
+
+  function getIRLabel(days) {
+    if (days <= 180) return '22,5%';
+    if (days <= 360) return '20%';
+    if (days <= 720) return '17,5%';
+    return '15%';
+  }
+
+  function getPoupancaMonthlyRate(selicAnual) {
+    if (selicAnual > 8.5) {
+      return Math.pow(1.0617, 1/12) - 1;
+    }
+    return selicAnual / 100 * 0.7 / 12;
+  }
+
+  document.getElementById('sim-form').onsubmit = (e) => {
+    e.preventDefault();
+    const initial = parseFloat(document.getElementById('sim-initial').value) || 0;
+    const monthly = parseFloat(document.getElementById('sim-monthly').value) || 0;
+    const months = parseInt(document.getElementById('sim-months').value) || 12;
+    const cdiAnnual = parseFloat(document.getElementById('sim-cdi').value) || 0;
+
+    const monthlyRate = Math.pow(1 + cdiAnnual / 100, 1 / 12) - 1;
+    const poupMonthlyRate = getPoupancaMonthlyRate(cdiAnnual);
+    const totalDays = months * 30;
+    const irRate = getIRRate(totalDays);
+
+    let balanceGross = initial;
+    let balancePoup = initial;
+    let totalInvested = initial;
+    let totalGrossInterest = 0;
+    const rows = [];
+    const chartLabels = ['0'];
+    const chartInvested = [initial];
+    const chartGross = [initial];
+    const chartNet = [initial];
+
+    for (let m = 1; m <= months; m++) {
+      const interestCDI = balanceGross * monthlyRate;
+      balanceGross += interestCDI + monthly;
+      totalGrossInterest += interestCDI;
+
+      balancePoup += balancePoup * poupMonthlyRate + monthly;
+      totalInvested += monthly;
+
+      const irThisMonth = totalGrossInterest * irRate;
+      const netBalance = balanceGross - irThisMonth;
+
+      rows.push({
+        month: m,
+        deposit: monthly,
+        interest: interestCDI,
+        totalInvested,
+        gross: balanceGross,
+        ir: irThisMonth,
+        net: netBalance,
+      });
+
+      chartLabels.push(String(m));
+      chartInvested.push(totalInvested);
+      chartGross.push(balanceGross);
+      chartNet.push(netBalance);
+    }
+
+    const irValue = totalGrossInterest * irRate;
+    const netInterest = totalGrossInterest - irValue;
+    const netTotal = totalInvested + netInterest;
+    const rentCDI = totalInvested > 0 ? (netInterest / totalInvested) * 100 : 0;
+    const poupInterest = balancePoup - totalInvested;
+    const rentPoup = totalInvested > 0 ? (poupInterest / totalInvested) * 100 : 0;
+    const advantage = netTotal - balancePoup;
+
+    document.getElementById('sim-results').style.display = '';
+    document.getElementById('sim-invested').textContent = formatCurrency(totalInvested);
+    document.getElementById('sim-gross-interest').textContent = '+ ' + formatCurrency(totalGrossInterest);
+    document.getElementById('sim-ir-rate').textContent = getIRLabel(totalDays);
+    document.getElementById('sim-ir-value').textContent = '- ' + formatCurrency(irValue);
+    document.getElementById('sim-net-interest').textContent = '+ ' + formatCurrency(netInterest);
+    document.getElementById('sim-net-total').textContent = formatCurrency(netTotal);
+
+    document.getElementById('sim-cdb-final').textContent = formatCurrency(netTotal);
+    document.getElementById('sim-poup-final').textContent = formatCurrency(balancePoup);
+    document.getElementById('sim-rent-cdi').textContent = rentCDI.toFixed(2) + '%';
+    document.getElementById('sim-rent-poup').textContent = rentPoup.toFixed(2) + '%';
+    document.getElementById('sim-advantage').textContent = (advantage >= 0 ? '+ ' : '') + formatCurrency(advantage);
+
+    // Highlight active IR badge
+    const badgeIdx = totalDays <= 180 ? 1 : totalDays <= 360 ? 2 : totalDays <= 720 ? 3 : 4;
+    for (let i = 1; i <= 4; i++) {
+      const badge = document.getElementById('sim-ir-badge-' + i);
+      if (i === badgeIdx) {
+        badge.style.cssText = 'background: color-mix(in srgb, var(--primary) 15%, transparent); border-color: var(--primary); color: var(--primary); font-weight: 600;';
+      } else {
+        badge.style.cssText = '';
+      }
+    }
+
+    document.getElementById('sim-table-body').innerHTML = rows.map(r => `
+      <tr>
+        <td class="tabular">${r.month}</td>
+        <td class="text-right tabular">${formatCurrency(r.deposit)}</td>
+        <td class="text-right tabular" style="color:var(--success);">${formatCurrency(r.interest)}</td>
+        <td class="text-right tabular">${formatCurrency(r.totalInvested)}</td>
+        <td class="text-right tabular">${formatCurrency(r.gross)}</td>
+        <td class="text-right tabular" style="color:var(--danger);">${formatCurrency(r.ir)}</td>
+        <td class="text-right tabular font-semibold" style="color:var(--success);">${formatCurrency(r.net)}</td>
+      </tr>
+    `).join('');
+
+    Charts.destroy('sim-chart');
+    const canvas = document.getElementById('sim-chart');
+    if (canvas) {
+      const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
+      const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+      const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+      const successColor = getComputedStyle(document.documentElement).getPropertyValue('--success').trim();
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+      const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
+
+      new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: chartLabels,
+          datasets: [
+            { label: 'Valor bruto', data: chartGross, borderColor: successColor, backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5, pointRadius: 0, borderDash: [4, 3] },
+            { label: 'Valor líquido (após IR)', data: chartNet, borderColor: successColor, backgroundColor: successColor + '15', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 0 },
+            { label: 'Total investido', data: chartInvested, borderColor: primaryColor, backgroundColor: primaryColor + '10', fill: true, tension: 0, borderWidth: 2, pointRadius: 0 },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { color: fg, boxWidth: 14, font: { size: 11 } } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Utils.formatCurrency(ctx.parsed.y)}` } },
+          },
+          scales: {
+            x: { ticks: { color: muted, font: { size: 10 }, maxTicksLimit: 12 }, grid: { display: false }, title: { display: true, text: 'Meses', color: muted } },
+            y: { ticks: { color: muted, font: { size: 10 }, callback: v => Utils.formatCurrency(v) }, grid: { color: borderColor + '60' } },
+          },
+        },
+      });
+    }
+  };
+}
+
+/* ---------- CHARTS PAGE ---------- */
+function renderChartsPage() {
+  const root = document.getElementById('page-root');
+  const data = State.get();
+  const range = Utils.getMonthRange();
+  const accountId = data.settings.selectedAccountId;
+  let txs = Analytics.applyAccountFilter(data.transactions, accountId);
+  const monthTxs = Analytics.inRange(txs, range.start, range.end);
+
+  const expensesByCat = Analytics.byCategory(monthTxs, 'EXPENSE');
+  const incomesByCat = Analytics.byCategory(monthTxs, 'INCOME');
+  const series = Analytics.timeSeries(monthTxs);
+
+  const last6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const s = new Date(d.getFullYear(), d.getMonth(), 1);
+    const e = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    const mTxs = Analytics.inRange(txs, s, e);
+    const sum = Analytics.summary(mTxs);
+    const label = s.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+    last6.push({ label, income: sum.totalIncome, expense: sum.totalExpense, balance: sum.balance });
+  }
+
+  const dayOfWeekData = [0, 0, 0, 0, 0, 0, 0];
+  const dayOfWeekLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  for (const t of monthTxs) {
+    if (t.type === 'EXPENSE') {
+      dayOfWeekData[new Date(t.date).getDay()] += t.amount;
+    }
+  }
+
+  root.innerHTML = `
+    <div class="space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Gráficos</h1>
+        <p class="text-sm text-muted">Visualizações detalhadas das suas finanças</p>
+      </div>
+
+      <!-- Comparativo 6 meses -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-1">Comparativo mensal (últimos 6 meses)</h3>
+        <p class="text-sm text-muted mb-4">Receitas vs. gastos mês a mês</p>
+        <div style="position:relative; height:300px;"><canvas id="gc-monthly"></canvas></div>
+      </div>
+
+      <!-- Gastos por dia da semana -->
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card p-6">
+          <h3 class="font-semibold mb-1">Gastos por dia da semana</h3>
+          <p class="text-sm text-muted mb-4">Mês atual — em qual dia você gasta mais?</p>
+          <div style="position:relative; height:280px;"><canvas id="gc-weekday"></canvas></div>
+        </div>
+        <div class="card p-6">
+          <h3 class="font-semibold mb-1">Saldo mensal (6 meses)</h3>
+          <p class="text-sm text-muted mb-4">Evolução do saldo mês a mês</p>
+          <div style="position:relative; height:280px;"><canvas id="gc-balance"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Pizzas -->
+      <div class="grid gap-6 md:grid-cols-2">
+        <div class="card p-6">
+          <h3 class="font-semibold mb-4">Receitas por categoria (mês atual)</h3>
+          <div style="position:relative; height:280px;"><canvas id="gc-pie-inc"></canvas></div>
+        </div>
+        <div class="card p-6">
+          <h3 class="font-semibold mb-4">Gastos por categoria (mês atual)</h3>
+          <div style="position:relative; height:280px;"><canvas id="gc-pie-exp"></canvas></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
+  const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+  const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+  const successColor = getComputedStyle(document.documentElement).getPropertyValue('--success').trim();
+  const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
+  const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+
+  // Comparativo mensal
+  Charts.destroy('gc-monthly');
+  const cmCanvas = document.getElementById('gc-monthly');
+  if (cmCanvas) {
+    new Chart(cmCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: last6.map(m => m.label),
+        datasets: [
+          { label: 'Receitas', data: last6.map(m => m.income), backgroundColor: successColor + '99', borderColor: successColor, borderWidth: 1, borderRadius: 4 },
+          { label: 'Gastos', data: last6.map(m => m.expense), backgroundColor: dangerColor + '99', borderColor: dangerColor, borderWidth: 1, borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', labels: { color: fg, boxWidth: 14, font: { size: 11 } } }, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Utils.formatCurrency(ctx.parsed.y)}` } } },
+        scales: { x: { ticks: { color: muted }, grid: { display: false } }, y: { ticks: { color: muted, callback: v => Utils.formatCurrency(v) }, grid: { color: border + '60' } } },
+      },
+    });
+  }
+
+  // Gastos por dia da semana
+  Charts.destroy('gc-weekday');
+  const wdCanvas = document.getElementById('gc-weekday');
+  if (wdCanvas) {
+    new Chart(wdCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: dayOfWeekLabels,
+        datasets: [{ label: 'Gastos', data: dayOfWeekData, backgroundColor: dangerColor + '80', borderColor: dangerColor, borderWidth: 1, borderRadius: 4 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => Utils.formatCurrency(ctx.parsed.y) } } },
+        scales: { x: { ticks: { color: muted }, grid: { display: false } }, y: { ticks: { color: muted, callback: v => Utils.formatCurrency(v) }, grid: { color: border + '60' } } },
+      },
+    });
+  }
+
+  // Saldo mensal
+  Charts.destroy('gc-balance');
+  const blCanvas = document.getElementById('gc-balance');
+  if (blCanvas) {
+    const balColors = last6.map(m => m.balance >= 0 ? successColor + '99' : dangerColor + '99');
+    const balBorders = last6.map(m => m.balance >= 0 ? successColor : dangerColor);
+    new Chart(blCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: last6.map(m => m.label),
+        datasets: [{ label: 'Saldo', data: last6.map(m => m.balance), backgroundColor: balColors, borderColor: balBorders, borderWidth: 1, borderRadius: 4 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => Utils.formatCurrency(ctx.parsed.y) } } },
+        scales: { x: { ticks: { color: muted }, grid: { display: false } }, y: { ticks: { color: muted, callback: v => Utils.formatCurrency(v) }, grid: { color: border + '60' } } },
+      },
+    });
+  }
+
+  Charts.pie('gc-pie-inc', incomesByCat);
+  Charts.pie('gc-pie-exp', expensesByCat);
+}
+
 /* ---------- SETTINGS / IMPORT / EXPORT ---------- */
 let _lastImportResult = null;
 
@@ -1722,7 +2190,7 @@ function renderSettings() {
     <div class="space-y-6">
       <div>
         <h1 class="text-2xl font-bold tracking-tight">Importar / Exportar</h1>
-        <p class="text-sm text-muted">Mova seus dados para dentro e para fora do FinApp</p>
+        <p class="text-sm text-muted">Mova seus dados para dentro e para fora do FinanPro</p>
       </div>
 
       <div class="grid gap-6 md:grid-cols-2">
@@ -2293,6 +2761,8 @@ function toggleTheme() {
 
 const ROUTES = {
   '#/dashboard':    renderDashboard,
+  '#/simulator':    renderSimulator,
+  '#/charts':       renderChartsPage,
   '#/transactions': renderTransactions,
   '#/categories':   renderCategories,
   '#/accounts':     renderAccounts,
@@ -2306,10 +2776,17 @@ function navigate() {
   renderNav();
   // Limpa charts antigos para evitar leak
   Charts.destroy('chart-pie');
+  Charts.destroy('chart-pie-inc');
   Charts.destroy('chart-line');
   Charts.destroy('r-pie-exp');
   Charts.destroy('r-pie-inc');
   Charts.destroy('r-line');
+  Charts.destroy('sim-chart');
+  Charts.destroy('gc-monthly');
+  Charts.destroy('gc-weekday');
+  Charts.destroy('gc-balance');
+  Charts.destroy('gc-pie-inc');
+  Charts.destroy('gc-pie-exp');
   fn();
 }
 
