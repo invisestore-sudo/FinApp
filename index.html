@@ -196,6 +196,17 @@
 <!-- ============================================================
      INVISE GATE — login por chave única
      ============================================================ -->
+
+<!-- BYPASS-START: gate temporariamente desabilitado. Para reativar,
+     remova este bloco <script> de bypass e descomente todo o bloco
+     abaixo (de GATE-HTML-START até GATE-SCRIPT-END). -->
+<script>
+  window.__INVISE_USER = 'guest';
+  window.__INVISE_KEY  = 'BYPASS';
+</script>
+<!-- BYPASS-END -->
+
+<!-- GATE-HTML-START
 <style>
   #invise-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background: #0a0a0f; color: #f0f0f5; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 20px; }
   #invise-gate .ig-card { width: 100%; max-width: 420px; background: #13131e; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
@@ -223,9 +234,11 @@
     <div class="ig-foot">Não tem chave? <a href="https://invisestore.com">Comprar agora</a></div>
   </div>
 </div>
+GATE-HTML-END -->
+
+<!-- GATE-SCRIPT-START
 <script>
 (function() {
-  // ⚠️ TROQUE pela URL do seu backend no Render (sem a barra final)
   var INVISE_API = window.INVISE_API || 'https://invisestore-backend.onrender.com';
   var APP_NAME = 'finapp';
   var LS_KEY = 'invise.key';
@@ -239,7 +252,6 @@
     return d;
   }
   function userIdFromKey(k) {
-    // hash simples e estável p/ namespace de dados
     var h = 0; for (var i = 0; i < k.length; i++) h = ((h<<5)-h) + k.charCodeAt(i) | 0;
     return 'u' + Math.abs(h).toString(36);
   }
@@ -269,17 +281,14 @@
     }
   }
 
-  // Auto-login se já validou antes
   var saved = localStorage.getItem(LS_KEY);
   if (saved) {
-    // Aplica imediatamente o user p/ o boot poder usar localStorage namespace correto
     window.__INVISE_KEY = saved;
     window.__INVISE_USER = localStorage.getItem(LS_USER) || userIdFromKey(saved);
     document.body.classList.remove('invise-locked');
     var g0 = document.getElementById('invise-gate'); if (g0) g0.remove();
-    // Revalida em background; se inválida, força logout
     validate(saved, true).then(function(res) {
-      if (res === 'offline' || res) return; // ok ou offline
+      if (res === 'offline' || res) return;
       localStorage.removeItem(LS_KEY);
       alert('Sua chave foi revogada ou expirou. Faça login novamente.');
       location.reload();
@@ -308,6 +317,7 @@
   });
 })();
 </script>
+GATE-SCRIPT-END -->
 <!-- ============================================================
      ESTRUTURA: Sidebar (desktop) + Topbar (mobile) + Main
      ============================================================ -->
