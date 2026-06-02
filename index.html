@@ -399,6 +399,8 @@ const Storage = (() => {
   let pushTimer = null;
   let pushing = false;
   let skipNextPush = false;
+  let synced = false;                    // só empurra depois do 1º pull (evita clobber)
+  const CLOUD_META_KEY = KEY + '.cloud';  // último updatedAt já sincronizado com a nuvem
 
   // Estrutura inicial do banco. Identidade dos dados parecida com o esquema Prisma.
   const seed = () => ({
@@ -481,9 +483,21 @@ const Storage = (() => {
   function localMeta() {
     try { return JSON.parse(localStorage.getItem(META_KEY) || 'null'); } catch (e) { return null; }
   }
+  // Meta de nuvem: guarda o último updatedAt confirmado com o servidor. Começa em
+  // 0 e NÃO é tocado pelo seed local, então num device novo o remoto sempre vence.
+  function cloudTs() {
+    try { return Number(JSON.parse(localStorage.getItem(CLOUD_META_KEY) || '0')) || 0; } catch (e) { return 0; }
+  }
+  function setCloudTs(ts) {
+    try { localStorage.setItem(CLOUD_META_KEY, JSON.stringify(Number(ts) || 0)); } catch (e) {}
+  }
+  function setLocalTs(ts) {
+    try { localStorage.setItem(META_KEY, JSON.stringify({ updatedAt: Number(ts) || 0 })); } catch (e) {}
+  }
+  function enablePush() { synced = true; }
 
   function schedulePush(data, updatedAt) {
-    if (!window.__INVISE_KEY) return;
+    if (!window.__INVISE_KEY || !synced) return;
     if (pushTimer) clearTimeout(pushTimer);
     pushTimer = setTimeout(() => pushRemote(data, updatedAt), 1500);
   }
@@ -497,6 +511,7 @@ const Storage = (() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: window.__INVISE_KEY, app: CLOUD_APP, data, updatedAt }),
       });
+      setCloudTs(updatedAt); // confirma o que foi enviado pra nuvem
     } catch (e) { /* offline: dados ficam no localStorage e sincronizam depois */ }
     finally { pushing = false; }
   }
@@ -518,7 +533,8 @@ const Storage = (() => {
     save(data);
   }
 
-  return { load, save, reset, id, now, pullRemote, applyRemote, localMeta };
+  return { load, save, reset, id, now, pullRemote, applyRemote, localMeta,
+           cloudTs, setCloudTs, setLocalTs, enablePush, pushRemote };
 })();
 
 /* ===========================================================
@@ -662,18 +678,40 @@ const State = (() => {
    ============================================================ */
 (async function cloudSyncInit() {
   if (!window.__INVISE_KEY) return;
+
   const remote = await Storage.pullRemote();
-  if (!remote) {
-    // Sem dados remotos: empurra o estado local atual pra criar a conta na nuvem.
-    Storage.save(State.get());
+  // A partir daqui já podemos empurrar: edições do usuário sincronizam.
+  // (Antes disso ficava bloqueado pra o seed local não sobrescrever a nuvem.)
+  Storage.enablePush();
+
+  const current = State.get();
+  const localTs = (Storage.localMeta() || {}).updatedAt || 0;
+  const cloudTs = Storage.cloudTs();
+  const localHasData = Array.isArray(current.transactions) && current.transactions.length > 0;
+
+  if (!remote || !remote.data) {
+    // Nada na nuvem ainda: cria o registro com o estado local.
+    Storage.pushRemote(current, localTs || Date.now());
     return;
   }
-  const localMeta = Storage.localMeta();
-  const localUpdatedAt = localMeta ? localMeta.updatedAt : 0;
-  if (remote.updatedAt > localUpdatedAt) {
-    const fresh = State.get();
-    const merged = { ...fresh, ...remote.data, settings: { ...fresh.settings, ...(remote.data.settings || {}) } };
+
+  const remoteHasData = Array.isArray(remote.data.transactions) && remote.data.transactions.length > 0;
+
+  // Remoto vence se for mais novo que o último sync confirmado e tiver conteúdo
+  // (ou se o local for só o seed vazio). Compara com cloudTs (0 em device novo),
+  // nunca com o META local — que o seed contamina com Date.now().
+  if (remote.updatedAt > cloudTs && (remoteHasData || !localHasData)) {
+    const merged = { ...current, ...remote.data, settings: { ...current.settings, ...(remote.data.settings || {}) } };
     State.replaceAll(merged);
+    Storage.setCloudTs(remote.updatedAt);
+    Storage.setLocalTs(remote.updatedAt); // alinha o META pra não re-empurrar à toa
+    return;
+  }
+
+  // Local está em dia/à frente, ou a nuvem está vazia (ex.: clobber antigo):
+  // empurra o local pra curar o registro remoto.
+  if (localHasData && (!remoteHasData || localTs > remote.updatedAt)) {
+    Storage.pushRemote(current, localTs || Date.now());
   }
 })();
 

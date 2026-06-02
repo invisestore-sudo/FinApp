@@ -1,5 +1,5 @@
 /* FinanPro — Service Worker (PWA install + offline shell) */
-const CACHE = 'finapp-v2';
+const CACHE = 'finapp-v3';
 const SHELL = [
   './',
   './index.html',
