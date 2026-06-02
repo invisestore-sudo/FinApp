@@ -238,13 +238,13 @@
 <div id="invise-gate">
   <div class="ig-card">
     <h1>Finan<b>Pro</b></h1>
-    <p>Digite sua chave única para entrar. Você recebe a chave após a compra na <a href="https://invisestore.com" style="color:#6c63ff;">InviseStore</a>.</p>
+    <p>Digite sua chave única para entrar. Você recebe a chave após a compra na <a href="https://invise-store.vercel.app/" style="color:#6c63ff;">InviseStore</a>.</p>
     <form id="ig-form" autocomplete="off">
       <input id="ig-key" placeholder="INVS-XXXX-XXXX-XXXX" required maxlength="24" />
       <button type="submit" id="ig-submit">Entrar</button>
       <div id="ig-err" class="ig-err" style="display:none;"></div>
     </form>
-    <div class="ig-foot">Não tem chave? <a href="https://invisestore.com">Comprar agora</a></div>
+    <div class="ig-foot">Não tem chave? <a href="https://invise-store.vercel.app/">Comprar agora</a></div>
   </div>
 </div>
 <script>
@@ -2127,6 +2127,8 @@ function renderSimulator() {
     Charts.destroy('sim-chart');
     const canvas = document.getElementById('sim-chart');
     if (canvas) {
+      const existingSimChart = Chart.getChart(canvas);
+      if (existingSimChart) existingSimChart.destroy();
       const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim();
       const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
       const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
