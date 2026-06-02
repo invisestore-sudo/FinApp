@@ -220,17 +220,6 @@
 <!-- ============================================================
      INVISE GATE — login por chave única
      ============================================================ -->
-
-<!-- BYPASS-START: gate temporariamente desabilitado. Para reativar,
-     remova este bloco <script> de bypass e descomente todo o bloco
-     abaixo (de GATE-HTML-START até GATE-SCRIPT-END). -->
-<script>
-  window.__INVISE_USER = 'guest';
-  window.__INVISE_KEY  = 'BYPASS';
-</script>
-<!-- BYPASS-END -->
-
-<!-- GATE-HTML-START
 <style>
   #invise-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background: #0a0a0f; color: #f0f0f5; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 20px; }
   #invise-gate .ig-card { width: 100%; max-width: 420px; background: #13131e; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
@@ -258,9 +247,6 @@
     <div class="ig-foot">Não tem chave? <a href="https://invisestore.com">Comprar agora</a></div>
   </div>
 </div>
-GATE-HTML-END -->
-
-<!-- GATE-SCRIPT-START
 <script>
 (function() {
   var INVISE_API = window.INVISE_API || 'https://invisestore-backend.onrender.com';
@@ -341,7 +327,6 @@ GATE-HTML-END -->
   });
 })();
 </script>
-GATE-SCRIPT-END -->
 <!-- ============================================================
      ESTRUTURA: Sidebar (desktop) + Topbar (mobile) + Main
      ============================================================ -->
@@ -408,6 +393,12 @@ GATE-SCRIPT-END -->
    ============================================================ */
 const Storage = (() => {
   const KEY = 'finapp.v1.' + (window.__INVISE_USER || 'anon');
+  const META_KEY = KEY + '.meta';
+  const CLOUD_API = (window.INVISE_API || 'https://invisestore-backend.onrender.com');
+  const CLOUD_APP = 'finapp';
+  let pushTimer = null;
+  let pushing = false;
+  let skipNextPush = false;
 
   // Estrutura inicial do banco. Identidade dos dados parecida com o esquema Prisma.
   const seed = () => ({
@@ -473,6 +464,10 @@ const Storage = (() => {
   function save(data) {
     try {
       localStorage.setItem(KEY, JSON.stringify(data));
+      const meta = { updatedAt: Date.now() };
+      localStorage.setItem(META_KEY, JSON.stringify(meta));
+      if (skipNextPush) { skipNextPush = false; return; }
+      schedulePush(data, meta.updatedAt);
     } catch (e) {
       console.error('Falha ao salvar storage:', e);
     }
@@ -480,9 +475,50 @@ const Storage = (() => {
 
   function reset() {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(META_KEY);
   }
 
-  return { load, save, reset, id, now };
+  function localMeta() {
+    try { return JSON.parse(localStorage.getItem(META_KEY) || 'null'); } catch (e) { return null; }
+  }
+
+  function schedulePush(data, updatedAt) {
+    if (!window.__INVISE_KEY) return;
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => pushRemote(data, updatedAt), 1500);
+  }
+
+  async function pushRemote(data, updatedAt) {
+    if (!window.__INVISE_KEY || pushing) return;
+    pushing = true;
+    try {
+      await fetch(CLOUD_API + '/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: window.__INVISE_KEY, app: CLOUD_APP, data, updatedAt }),
+      });
+    } catch (e) { /* offline: dados ficam no localStorage e sincronizam depois */ }
+    finally { pushing = false; }
+  }
+
+  async function pullRemote() {
+    if (!window.__INVISE_KEY) return null;
+    try {
+      const url = CLOUD_API + '/api/data?key=' + encodeURIComponent(window.__INVISE_KEY) + '&app=' + CLOUD_APP;
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const json = await r.json();
+      if (!json || !json.data) return null;
+      return { data: json.data, updatedAt: json.updatedAt || 0 };
+    } catch (e) { return null; }
+  }
+
+  function applyRemote(data) {
+    skipNextPush = true;
+    save(data);
+  }
+
+  return { load, save, reset, id, now, pullRemote, applyRemote, localMeta };
 })();
 
 /* ===========================================================
@@ -612,7 +648,33 @@ const State = (() => {
     },
   };
 
-  return { get, subscribe, update, actions };
+  function replaceAll(next) {
+    data = next;
+    Storage.applyRemote(next);
+    notify();
+  }
+
+  return { get, subscribe, update, actions, replaceAll };
+})();
+
+/* ===========================================================
+   2.1) CLOUD SYNC — puxa dados da conta (key) ao iniciar.
+   ============================================================ */
+(async function cloudSyncInit() {
+  if (!window.__INVISE_KEY) return;
+  const remote = await Storage.pullRemote();
+  if (!remote) {
+    // Sem dados remotos: empurra o estado local atual pra criar a conta na nuvem.
+    Storage.save(State.get());
+    return;
+  }
+  const localMeta = Storage.localMeta();
+  const localUpdatedAt = localMeta ? localMeta.updatedAt : 0;
+  if (remote.updatedAt > localUpdatedAt) {
+    const fresh = State.get();
+    const merged = { ...fresh, ...remote.data, settings: { ...fresh.settings, ...(remote.data.settings || {}) } };
+    State.replaceAll(merged);
+  }
 })();
 
 /* ===========================================================
